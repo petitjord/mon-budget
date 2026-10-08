@@ -188,6 +188,16 @@ function realSum(m,type){var s=0;txMonth(m).forEach(function(t){if(typeOf(t.cat)
 function realCat(m,cat){var s=0;txMonth(m).forEach(function(t){if(t.cat===cat)s+=+t.amount||0;});return r2(s);}
 function solde(m){return r2(planSum(m,"Revenu")-planSum(m,"Dépense")-planSum(m,"Épargne"));}
 function clSum(m,kind){var s=0;D.cl.forEach(function(l){if(l.kind===kind)s+=+((l.m||[])[m-1])||0;});return r2(s);}
+function isAchat(e){return e.kind?e.kind==="achat":e.cat==="Équipement maison";}
+function echInfo(e){
+  var hasDate=/^\d{4}-\d{2}-\d{2}$/.test(e.date||""),y,mo,d;
+  if(hasDate){y=+e.date.slice(0,4);mo=+e.date.slice(5,7);d=+e.date.slice(8,10);}
+  else{var s0=e.start-1;y=YEAR+Math.floor(s0/12);mo=((s0%12)+12)%12+1;d=1;}
+  var first=y*12+(mo-1),t=new Date(),ti=t.getFullYear()*12+t.getMonth(),td0=t.getDate();
+  var paid=ti-first+((hasDate?td0>=d:true)?1:0);paid=Math.max(0,Math.min(e.n,paid));
+  function dateAt(k){var idx=first+k,yy=Math.floor(idx/12),mm=idx%12+1,dd=Math.min(d,new Date(yy,mm,0).getDate());return pad(dd)+"/"+pad(mm)+"/"+yy;}
+  return {hasDate:hasDate,paid:paid,left:e.n-paid,done:e.amount*paid,rest:e.amount*(e.n-paid),next:paid<e.n?dateAt(paid):null,last:dateAt(e.n-1),dflt:y+"-"+pad(mo)+"-"+pad(d)};
+}
 function endLabel(e){var idx=e.start+e.n-1;var y=YEAR+Math.floor((idx-1)/12);return MONTHS[(idx-1)%12]+" "+y;}
 
 /* ---------- icônes ---------- */
@@ -261,8 +271,8 @@ function viewHome(){
     });
     h+='</div>';
   }
-  var ach=0,cre=0;D.ech.forEach(function(e){var paid=Math.max(0,Math.min(e.n,m-e.start+1));var rest=e.amount*(e.n-paid);if(e.cat==="Équipement maison")ach+=rest;else cre+=rest;});
-  h+='<h2>Reste à rembourser</h2><div class="list"><button class="row" data-act="tab" data-t="cred"><div class="l"><b>Achats en plusieurs fois</b><span>après '+MONTHS[m-1].toLowerCase()+'</span></div><span class="num">'+fmt(ach)+'</span></button><button class="row" data-act="tab" data-t="cred"><div class="l"><b>Crédits</b><span>immobilier et prêt</span></div><span class="num">'+fmt(cre)+'</span></button></div>';
+  var restA=0;D.ech.filter(isAchat).forEach(function(e){restA+=echInfo(e).rest;});
+  h+='<h2>Achats en plusieurs fois</h2><div class="list"><button class="row" data-act="tab" data-t="cred"><div class="l"><b>Reste à payer</b><span>à partir d\'aujourd\'hui</span></div><span class="num">'+fmt(restA)+'</span></button></div>';
   var vals=[],tr=0,td=0,te=0;for(var i=1;i<=12;i++){vals.push(solde(i));tr+=planSum(i,"Revenu");td+=planSum(i,"Dépense");te+=planSum(i,"Épargne");}
   h+='<h2>Solde prévu par mois</h2><section class="card">'+barChart(vals,m,function(v){return eur0.format(v);})+'<div class="sum4"><div>Revenus<span class="num">'+eur0.format(tr)+'</span></div><div>Dépenses<span class="num">'+eur0.format(td)+'</span></div><div>Épargne<span class="num">'+eur0.format(te)+'</span></div></div><div class="muted" style="font-size:12px;margin-top:10px">Total prévu '+YEAR+' : <span class="num'+amtCls(r2(tr-td-te))+'">'+fmt(tr-td-te)+'</span>. Touche une barre pour changer de mois.</div></section>';
   return h;
@@ -286,26 +296,24 @@ function viewBudget(){
     h+='</div>';
   });
   h+='<label class="toggle"><input type="checkbox" id="zt" data-act="zero"'+(S.showZero?" checked":"")+'> Afficher les postes à 0 € ce mois-ci ('+zeroCount+')</label>';
-  h+='<div class="addbtn"><button class="btn ghost" data-act="newline">+ Ajouter un poste</button></div>';
+  h+='<div class="addbtn"><button class="btn ghost" data-act="newline">+ Ajouter un poste</button></div><div class="addbtn" style="margin-top:10px"><button class="btn ghost" data-act="newcredit">+ Ajouter un crédit (immobilier, prêt)</button></div>';
   return h;
 }
 
 function viewCred(){
-  var m=S.m,h="",monthly=0,ach=0,cre=0;
-  D.ech.forEach(function(e){monthly+=echAmt(e,m);var paid=Math.max(0,Math.min(e.n,m-e.start+1));var rest=e.amount*(e.n-paid);if(e.cat==="Équipement maison")ach+=rest;else cre+=rest;});
-  h+='<section class="card"><div class="sum4" style="margin-top:0"><div>Prélevé en '+MSHORT[m-1].toLowerCase()+'<span class="num">'+fmt(monthly)+'</span></div><div>Achats à solder<span class="num">'+fmt(ach)+'</span></div><div>Crédits restants<span class="num">'+fmt(cre)+'</span></div></div></section>';
+  var m=S.m,h="",monthly=0,done=0,rest=0,list=D.ech.filter(isAchat).sort(byOrder);
+  list.forEach(function(e){monthly+=echAmt(e,m);var i=echInfo(e);done+=i.done;rest+=i.rest;});
+  h+='<section class="card"><div class="sum4" style="margin-top:0"><div>Prélevé en '+MSHORT[m-1].toLowerCase()+'<span class="num">'+fmt(monthly)+'</span></div><div>Déjà payé<span class="num">'+fmt(done)+'</span></div><div>Reste à payer<span class="num">'+fmt(rest)+'</span></div></div></section>';
   function card(e){
-    var paid=Math.max(0,Math.min(e.n,m-e.start+1)),left=e.n-paid,rest=e.amount*left,pct=e.n?paid/e.n*100:0;
-    var st=paid<=0?"Commence en "+MONTHS[e.start-1].toLowerCase():(left===0?"Terminé":"Échéance "+paid+" sur "+e.n);
-    return '<button class="card credit" style="width:100%;text-align:left" data-act="edech" data-id="'+esc(e.id)+'"><div class="head"><b>'+esc(e.name)+'</b><span class="num">'+fmt(e.amount)+'</span></div><div class="prog" style="height:8px;margin:10px 0 0"><i style="width:'+pct+'%"></i></div><div class="meta">'+st+(left>0?' · reste <span class="num">'+fmt(rest)+'</span> ('+left+' × '+fmt(e.amount)+')':'')+' · fin '+endLabel(e)+'</div></button>';
+    var i=echInfo(e),pct=e.n?i.paid/e.n*100:0;
+    var st=i.left===0?"Terminé":i.paid+" payé"+(i.paid>1?"s":"")+" sur "+e.n+" · prochain le "+i.next;
+    return '<button class="card credit" style="width:100%;text-align:left" data-act="edech" data-id="'+esc(e.id)+'"><div class="head"><b>'+esc(e.name)+'</b><span class="num">'+fmt(e.amount)+'</span></div><div class="prog" style="height:8px;margin:10px 0 0"><i style="width:'+pct+'%"></i></div><div class="meta">'+st+'<br>Déjà payé <span class="num">'+fmt(i.done)+'</span>'+(i.left>0?' · reste <span class="num">'+fmt(i.rest)+'</span> ('+i.left+' × '+fmt(e.amount)+')':'')+'<br>Dernier prélèvement le '+i.last+(i.hasDate?'':'<br><b>Touche pour saisir la date du 1er prélèvement</b>')+'</div></button>';
   }
-  var sorted=D.ech.slice().sort(byOrder);
-  var cr=sorted.filter(function(e){return e.cat!=="Équipement maison";}),ac=sorted.filter(function(e){return e.cat==="Équipement maison";});
-  if(cr.length){h+='<h2>Crédits</h2>'+cr.map(card).join("");}
-  if(ac.length){h+='<h2>Achats en plusieurs fois</h2>'+ac.map(card).join("");}
-  if(!sorted.length)h+='<div class="list" style="margin-top:14px"><div class="empty">Aucun crédit ni paiement échelonné pour l\'instant.</div></div>';
-  h+='<div class="addbtn"><button class="btn ghost" data-act="newech">+ Ajouter un crédit ou un achat</button></div>';
-  h+='<p class="muted" style="font-size:12px;margin-top:14px">Le reste à payer est calculé avec la mensualité saisie, sans tenir compte d\'une variation future. Les échéances alimentent automatiquement le budget de chaque mois.</p>';
+  h+='<h2>Mes prélèvements en plusieurs fois</h2>';
+  if(list.length)h+=list.map(card).join("");
+  else h+='<div class="list"><div class="empty">Aucun achat en plusieurs fois pour l\'instant.</div></div>';
+  h+='<div class="addbtn"><button class="btn ghost" data-act="newech">+ Ajouter un achat en plusieurs fois</button></div>';
+  h+='<p class="muted" style="font-size:12px;margin-top:14px">Indique la date du premier prélèvement : l\'application compte les prélèvements déjà passés et ce qu\'il reste à payer. Chaque échéance alimente automatiquement le budget du mois.</p>';
   return h;
 }
 
@@ -398,21 +406,26 @@ async function saveLine(){
 }
 
 /* crédit / achat échelonné */
-function openEch(id){
+function openEch(id,kind){
   var e=id?D.ech.filter(function(x){return x.id===id;})[0]:null;if(id&&!e)return;
-  SH={k:"ech",id:id||null,o:e?e.o:(D.ech.reduce(function(a,x){return Math.max(a,x.o||0);},0)+1)};
-  var h='<h3>'+(e?"Modifier":"Nouveau crédit ou achat")+'</h3><label class="f" for="f-name">Nom</label><input class="in-t" id="f-name" maxlength="60" value="'+esc(e?e.name:"")+'" placeholder="Ex. Canapé 10X">';
-  h+='<label class="f" for="f-amt">Mensualité (€)</label><input class="in-t num" id="f-amt" inputmode="decimal" value="'+(e?String(e.amount).replace(".",","):"")+'" placeholder="0,00">';
-  h+='<label class="f" for="f-start">Première échéance</label><select class="in-t" id="f-start">'+monthOpts(e?e.start:S.m)+'</select>';
-  h+='<label class="f" for="f-n">Nombre de mensualités</label><input class="in-t num" id="f-n" inputmode="numeric" value="'+(e?e.n:"")+'" placeholder="Ex. 10">';
-  h+='<label class="f" for="f-cat">Catégorie du budget</label><select class="in-t" id="f-cat">'+opts(CATS.filter(function(c){return c[1]==="Dépense";}).map(function(c){return c[0];}),e?e.cat:"Équipement maison")+'</select>';
+  var k=e?(isAchat(e)?"achat":"credit"):(kind||"achat"),inf=e?echInfo(e):null;
+  SH={k:"ech",id:id||null,kind:k,o:e?e.o:(D.ech.reduce(function(a,x){return Math.max(a,x.o||0);},0)+1)};
+  var h='<h3>'+(e?"Modifier":(k==="achat"?"Nouvel achat en plusieurs fois":"Nouveau crédit"))+'</h3><label class="f" for="f-name">Nom</label><input class="in-t" id="f-name" maxlength="60" value="'+esc(e?e.name:"")+'" placeholder="Ex. Canapé 10X">';
+  h+='<label class="f" for="f-amt">Montant de chaque prélèvement (€)</label><input class="in-t num" id="f-amt" inputmode="decimal" value="'+(e?String(e.amount).replace(".",","):"")+'" placeholder="0,00">';
+  h+='<label class="f" for="f-date">Date du premier prélèvement</label><input class="in-t" type="date" id="f-date" min="2015-01-01" value="'+(e?(e.date||inf.dflt):todayStr())+'">';
+  if(e&&!e.date)h+='<p class="muted" style="font-size:12px;margin:6px 0 0">Le jour est à préciser : l\'application peut alors compter exactement les prélèvements déjà passés.</p>';
+  h+='<label class="f" for="f-n">Nombre de prélèvements</label><input class="in-t num" id="f-n" inputmode="numeric" value="'+(e?e.n:"")+'" placeholder="Ex. 10">';
+  h+='<label class="f" for="f-cat">Catégorie du budget</label><select class="in-t" id="f-cat">'+opts(CATS.filter(function(c){return c[1]==="Dépense";}).map(function(c){return c[0];}),e?e.cat:(k==="achat"?"Équipement maison":"Prêts & crédits"))+'</select>';
   h+='<div class="btns"><button class="btn" data-act="saveech">Enregistrer</button><button class="btn ghost" data-act="close">Annuler</button></div>'+(e?delBlock():"");
   openSheet(h);
 }
 async function saveEch(){
-  var name=$("f-name").value.trim(),amt=r2(parseAmt($("f-amt").value)),n=Math.round(parseAmt($("f-n").value));
-  if(!name){toast("Donne un nom");return;}if(!(amt>0)){toast("Entre la mensualité");return;}if(!(n>=1&&n<=600)){toast("Entre un nombre de mensualités (1 à 600)");return;}
-  var data={name:name,amount:amt,start:+$("f-start").value,n:n,cat:$("f-cat").value,o:SH.o},p=SH.id?db.collection("ech").doc(SH.id).set(data):db.collection("ech").add(data);
+  var name=$("f-name").value.trim(),amt=r2(parseAmt($("f-amt").value)),n=Math.round(parseAmt($("f-n").value)),date=$("f-date").value;
+  if(!name){toast("Donne un nom");return;}if(!(amt>0)){toast("Entre le montant du prélèvement");return;}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){toast("Choisis la date du premier prélèvement");return;}
+  if(!(n>=1&&n<=600)){toast("Entre un nombre de prélèvements (1 à 600)");return;}
+  var start=(+date.slice(0,4)-YEAR)*12+(+date.slice(5,7));
+  var data={name:name,amount:amt,start:start,date:date,n:n,cat:$("f-cat").value,kind:SH.kind,o:SH.o},p=SH.id?db.collection("ech").doc(SH.id).set(data):db.collection("ech").add(data);
   if(await run(p,"Enregistré")){closeSheet();}
 }
 
@@ -477,7 +490,8 @@ document.addEventListener("click",function(ev){
    case "edtx":openTx(el.getAttribute("data-id"));break;
    case "newline":openLine(null);break;
    case "edline":openLine(el.getAttribute("data-id"));break;
-   case "newech":openEch(null);break;
+   case "newech":openEch(null,"achat");break;
+   case "newcredit":openEch(null,"credit");break;
    case "edech":openEch(el.getAttribute("data-id"));break;
    case "newcl":openCl(null);break;
    case "edcl":openCl(el.getAttribute("data-id"));break;
