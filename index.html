@@ -554,6 +554,8 @@ function openSettings(){
   SH={k:"set"};
   var h='<h3>Réglages</h3><p class="muted" style="margin:0 0 4px;font-size:13px">Tes données restent sur cet appareil, dans ce navigateur. Fais une sauvegarde de temps en temps.</p>';
   h+='<label class="f">Apparence</label><div class="seg two" id="skinseg">'+[["color","Couleur"],["plain","Sobre"]].map(function(x){return '<button type="button" data-act="skin" data-v="'+x[0]+'" aria-pressed="'+((STORE.meta.skin||"color")===x[0])+'">'+x[1]+'</button>';}).join("")+'</div>';
+  h+='<label class="f">Synchronisation (cloud)</label><div id="sysum">'+syHtml()+'</div>';
+  if(!syOn()){h+='<p class="muted" style="font-size:12px;margin:0 0 6px">Sauvegarde automatique et partage entre appareils, via ton projet Firebase privé.</p><textarea class="in-t" id="sy-cfg" rows="3" placeholder="Colle ici la configuration Firebase (firebaseConfig)" style="font-family:var(--f-num);font-size:12px"></textarea><input class="in-t" id="sy-mail" type="email" autocomplete="username" placeholder="E-mail" style="margin-top:6px"><input class="in-t" id="sy-pw" type="password" autocomplete="current-password" placeholder="Mot de passe (6 caractères min.)" style="margin-top:6px"><div class="fill"><button class="btn small" data-act="syin">Se connecter</button><button class="btn ghost small" data-act="syup">Créer le compte</button></div>';}
   h+='<label class="f">Sauvegarder</label><button class="btn ghost" data-act="export">Copier mes données</button><textarea class="in-t" id="bk" rows="4" readonly hidden style="margin-top:8px;font-family:var(--f-num);font-size:12px"></textarea>';
   h+='<label class="f" for="imp">Importer des données</label><textarea class="in-t" id="imp" rows="4" placeholder="Colle ici le texte de ta sauvegarde" style="font-family:var(--f-num);font-size:12px"></textarea>';
   h+='<div class="fill"><button class="btn small" data-act="import">Importer</button><label class="btn ghost small" style="margin:0;text-align:center;flex:1" for="impf">Choisir un fichier</label><input type="file" id="impf" accept=".json,application/json,text/plain" hidden></div>';
@@ -576,6 +578,49 @@ function doImport(){
   STORE.meta.welcomed=true;saveStore();notifyAll();closeSheet();toast("Données importées");
 }
 function doReset(){var sk=STORE.meta.skin;STORE.lines={};STORE.ech={};STORE.cl={};STORE.tx={};STORE.meta={};if(sk)STORE.meta.skin=sk;saveStore();notifyAll();closeSheet();toast("Données effacées");}
+
+/* ---------- synchronisation Firebase (REST, sans bibliothèque) ---------- */
+var SYK="budget2026.sync",SY=(function(){try{return JSON.parse(localStorage.getItem(SYK))||{};}catch(e){return {};}})(),syBusy=false,syTimer=null,syMsg="";
+function sySave(){try{localStorage.setItem(SYK,JSON.stringify(SY));}catch(e){}}
+function syOn(){return !!(SY.key&&SY.pid&&SY.rt&&SY.uid);}
+function syFail(r,j){var m=(j&&j.error&&j.error.message)||("Erreur "+r.status);var t={EMAIL_EXISTS:"Ce compte existe déjà : utilise « Se connecter »",EMAIL_NOT_FOUND:"Compte inconnu : utilise « Créer le compte »",INVALID_PASSWORD:"Mot de passe incorrect",INVALID_LOGIN_CREDENTIALS:"E-mail ou mot de passe incorrect",WEAK_PASSWORD:"Mot de passe trop court (6 caractères minimum)",INVALID_EMAIL:"Adresse e-mail invalide",OPERATION_NOT_ALLOWED:"Active « E-mail/Mot de passe » dans Firebase → Authentication"};var k=String(m).split(" ")[0];return new Error(t[k]||(k==="PERMISSION_DENIED"?"Accès refusé : vérifie les règles Firestore":m));}
+async function syPost(url,body,form){var r=await fetch(url,{method:"POST",headers:{"Content-Type":form?"application/x-www-form-urlencoded":"application/json"},body:form?body:JSON.stringify(body)});var j={};try{j=await r.json();}catch(e){}if(!r.ok)throw syFail(r,j);return j;}
+function syTok(j){SY.idt=j.idToken||j.id_token;SY.rt=j.refreshToken||j.refresh_token||SY.rt;SY.uid=j.localId||j.user_id||SY.uid;SY.exp=Date.now()+((+(j.expiresIn||j.expires_in)||3600)-120)*1000;sySave();}
+async function syAuth(mode,email,pw){var j=await syPost("https://identitytoolkit.googleapis.com/v1/accounts:"+(mode==="up"?"signUp":"signInWithPassword")+"?key="+encodeURIComponent(SY.key),{email:email,password:pw,returnSecureToken:true});SY.email=email;syTok(j);}
+async function syToken(){if(SY.idt&&Date.now()<SY.exp)return SY.idt;var j=await syPost("https://securetoken.googleapis.com/v1/token?key="+encodeURIComponent(SY.key),"grant_type=refresh_token&refresh_token="+encodeURIComponent(SY.rt),true);syTok(j);return SY.idt;}
+function syUrl(){return "https://firestore.googleapis.com/v1/projects/"+encodeURIComponent(SY.pid)+"/databases/(default)/documents/budgets/"+encodeURIComponent(SY.uid);}
+function syPayload(){var o={};["lines","ech","cl","tx"].forEach(function(k){o[k]=STORE[k];});return JSON.stringify(o);}
+async function syGet(t){var r=await fetch(syUrl(),{headers:{Authorization:"Bearer "+t}});if(r.status===404)return null;var j={};try{j=await r.json();}catch(e){}if(!r.ok)throw syFail(r,j);var f=j.fields||{};return {ts:+((f.ts||{}).integerValue)||0,data:(f.data||{}).stringValue||""};}
+async function syPut(t,ts){var r=await fetch(syUrl(),{method:"PATCH",headers:{Authorization:"Bearer "+t,"Content-Type":"application/json"},body:JSON.stringify({fields:{ts:{integerValue:String(ts)},data:{stringValue:syPayload()}}})});if(!r.ok){var j={};try{j=await r.json();}catch(e){}throw syFail(r,j);}}
+function syApply(txt,ts){var o=JSON.parse(txt);["lines","ech","cl","tx"].forEach(function(k){STORE[k]=o[k]||{};});STORE.meta.welcomed=true;STORE.meta.mt=ts;try{localStorage.setItem(KEY,JSON.stringify(STORE));}catch(e){}notifyAll();}
+async function syncNow(manual){
+  if(!syOn()||syBusy)return;syBusy=true;
+  try{
+    var t=await syToken(),rem=await syGet(t),mt=+STORE.meta.mt||0;
+    if(rem&&rem.data&&rem.ts>mt){syApply(rem.data,rem.ts);syMsg="Données reçues du cloud";}
+    else if(!rem||mt>rem.ts||manual&&mt!==rem.ts){var ts=mt||Date.now();if(!mt){STORE.meta.mt=ts;try{localStorage.setItem(KEY,JSON.stringify(STORE));}catch(e){}}await syPut(t,ts);syMsg="Données envoyées au cloud";}
+    else syMsg="Déjà à jour";
+    SY.last=Date.now();SY.err="";sySave();
+  }catch(e){SY.err=(e&&e.message)||"Échec";sySave();if(manual)toast(SY.err);}
+  syBusy=false;syRefreshUI();
+}
+function syPush(){if(!syOn())return;clearTimeout(syTimer);syTimer=setTimeout(function(){syncNow(false);},1500);}
+function syRefreshUI(){var el=document.getElementById("sysum");if(el)el.innerHTML=syHtml();}
+function syHtml(){
+  if(!syOn())return "";
+  var d=SY.last?new Date(SY.last):null,hh=d?String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"):"";
+  return '<p class="muted" style="font-size:13px;margin:4px 0 8px">Connecté : '+esc(SY.email||"")+'<br>'+(SY.err?'<b style="color:var(--neg,#c0392b)">'+esc(SY.err)+'</b>':(hh?'Dernière synchro à '+hh+' · '+esc(syMsg):'Pas encore synchronisé'))+'</p><div class="fill"><button class="btn small" data-act="syncnow">Synchroniser</button><button class="btn ghost small" data-act="syncoff">Se déconnecter</button></div>';
+}
+function syCfgParse(txt){var k=(txt.match(/apiKey["']?\s*[:=]\s*["']([^"']+)["']/)||[])[1],p=(txt.match(/projectId["']?\s*[:=]\s*["']([^"']+)["']/)||[])[1];return k&&p?{key:k,pid:p}:null;}
+async function syConnect(mode){
+  var email=$("sy-mail").value.trim(),pw=$("sy-pw").value;
+  if(!syOn()||!SY.rt){var c=$("sy-cfg")?syCfgParse($("sy-cfg").value):null;if(c){SY.key=c.key;SY.pid=c.pid;}else if(!(SY.key&&SY.pid)){toast("Colle d'abord la configuration Firebase");return;}}
+  if(!email||!pw){toast("E-mail et mot de passe requis");return;}
+  try{toast("Connexion…");await syAuth(mode,email,pw);SY.err="";sySave();toast("Connecté");await syncNow(true);openSettings();}
+  catch(e){toast(e.message||"Échec de la connexion");}
+}
+function syOff(){SY={};try{localStorage.removeItem(SYK);}catch(e){}openSettings();toast("Déconnecté (données conservées sur l'appareil)");}
+document.addEventListener("visibilitychange",function(){if(!document.hidden)syncNow(false);});
 
 /* ---------- événements ---------- */
 document.addEventListener("click",function(ev){
@@ -601,6 +646,10 @@ document.addEventListener("click",function(ev){
    case "catdetail":openCat(el.getAttribute("data-c"));break;
    case "startempty":STORE.meta.welcomed=true;saveStore();render();break;
    case "export":doExport();break;
+   case "syin":syConnect("in");break;
+   case "syup":syConnect("up");break;
+   case "syncnow":syncNow(true);break;
+   case "syncoff":syOff();break;
    case "import":doImport();break;
    case "rstask":$("rstwrap").innerHTML='<button class="btn danger" data-act="rstgo">Confirmer : tout effacer</button>';break;
    case "rstgo":doReset();break;
@@ -627,7 +676,7 @@ function loadStore(){
   try{var s=localStorage.getItem(KEY);if(s){var o=JSON.parse(s);["lines","ech","cl","tx"].forEach(function(k){STORE[k]=o[k]||{};});STORE.meta=o.meta||{};}}
   catch(e){persistOK=false;}
 }
-function saveStore(){try{localStorage.setItem(KEY,JSON.stringify(STORE));}catch(e){persistOK=false;}}
+function saveStore(){STORE.meta.mt=Date.now();if(typeof syPush==="function")syPush();try{localStorage.setItem(KEY,JSON.stringify(STORE));}catch(e){persistOK=false;}}
 function snapOf(name){return {docs:Object.keys(STORE[name]).map(function(id){return {id:id,data:function(){return STORE[name][id];}};})};}
 function notify(name){SUBS[name].forEach(function(f){f(snapOf(name));});}
 function notifyAll(){Object.keys(SUBS).forEach(notify);}
@@ -644,7 +693,7 @@ function sub(name,key){
   });
 }
 function applySkin(){document.documentElement.setAttribute("data-skin",(STORE.meta&&STORE.meta.skin)||"color");}
-loadStore();applySkin();db=makeDb();dbState="ok";
+loadStore();applySkin();setTimeout(function(){syncNow(false);},600);db=makeDb();dbState="ok";
 render();
 sub("lines","lines");sub("ech","ech");sub("cl","cl");sub("tx","tx");
 if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}
