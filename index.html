@@ -68,7 +68,11 @@ button.row:active{background:var(--surface2)}
 .row .l span{font-size:12px;color:var(--muted)}
 .grp{display:flex;justify-content:space-between;padding:10px 14px;background:var(--surface2);font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 .cat .top2{display:flex;justify-content:space-between;gap:10px;font-size:14px}
-.cat{padding:11px 14px;border-bottom:1px solid var(--line)}
+.cat{display:block;width:100%;background:none;border:0;text-align:left;padding:11px 14px;border-bottom:1px solid var(--line)}
+button.cat:active{background:var(--surface2)}
+.cat .chev{color:var(--muted);margin-left:6px}
+.sheet .list{margin-top:6px}
+.sheet .sumline{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .cat:last-child{border-bottom:0}
 .cat .prog{height:6px;margin:8px 0 0}
 .tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent)}
@@ -248,6 +252,17 @@ function monthNav(){
 }
 function amtCls(n){return n<0?" neg":"";}
 
+function monthRows(m,cat){
+  var rows=[];
+  txMonth(m).forEach(function(t){if(cat&&t.cat!==cat)return;rows.push({date:String(t.date),act:"edtx",id:t.id,title:t.note||t.cat,cat:t.cat,amt:+t.amount||0,auto:false});});
+  autoItems(m).forEach(function(a){if(cat&&a.cat!==cat)return;rows.push({date:YEAR+"-"+pad(m)+"-"+pad(a.day),act:a.src==="ech"?"edech":"edline",id:a.id,title:a.name,cat:a.cat,amt:a.amt,auto:true});});
+  rows.sort(function(a,b){return b.date.localeCompare(a.date);});
+  return rows;
+}
+function opRow(t,showCat){
+  var ty=typeOf(t.cat),sign=ty==="Revenu"?"+":(ty==="Dépense"?"−":"");
+  return '<button class="row" data-act="'+t.act+'" data-id="'+esc(t.id)+'"><div class="l"><b>'+esc(t.title)+'</b><span>'+t.date.slice(8,10)+'/'+t.date.slice(5,7)+(showCat===false?'':' · '+esc(t.cat))+(t.auto?' · prélèvement':'')+'</span></div><span class="num">'+sign+fmt(t.amt).replace("-","")+'</span></button>';
+}
 function isEmpty(){return !D.lines.length&&!D.ech.length&&!D.cl.length&&!D.tx.length;}
 function viewHome(){
   if(isEmpty()&&!STORE.meta.welcomed)return '<section class="card welcome"><h3>Bienvenue</h3><p>Tes données restent sur ce téléphone. Importe ton budget existant ou pars d\'une page blanche.</p><div class="btns"><button class="btn" data-act="settings">Importer mon budget</button><button class="btn ghost" data-act="startempty">Commencer à zéro</button></div></section>';
@@ -263,28 +278,18 @@ function viewHome(){
   h+='<div class="mini"><span class="l">Épargne</span><span class="v num">'+(has?fmt(rEp):"—")+'</span><span class="p">prévu '+fmt(pEp)+'</span></div>';
   h+='<div class="mini"><span class="l">Solde prévu</span><span class="v num'+amtCls(sp)+'">'+fmt(sp)+'</span><span class="p">revenus − dépenses − épargne</span></div>';
   h+='<div class="mini"><span class="l">Solde réel</span><span class="v num'+amtCls(sr)+'">'+(has?fmt(sr):"—")+'</span><span class="p">'+(has?"saisies et prélèvements passés":"rien d'enregistré")+'</span></div></div>';
-  h+='<h2>Par catégorie</h2><div class="list">';
-  var any=false;
+  var opsH='<h2>Opérations du mois</h2>';
+  if(!has){opsH+='<div class="list"><div class="empty">Rien d\'enregistré en '+MONTHS[m-1].toLowerCase()+'.<br>Touche le bouton + pour ajouter une dépense.</div></div>';}
+  else{opsH+='<div class="list">'+monthRows(m).map(function(t){return opRow(t);}).join("")+'</div>';}
+  var catH='<h2>Par catégorie</h2><div class="list">',any=false;
   CATS.filter(function(c){return c[1]!=="Revenu";}).forEach(function(c){
     var p=planCat(m,c[0]),r=realCat(m,c[0]);if(!p&&!r)return;any=true;
     var ov=r>p,w=p>0?Math.min(100,r/p*100):100;
-    h+='<div class="cat"><div class="top2"><span>'+esc(c[0])+'</span><span class="num'+(ov?" neg":"")+'">'+fmt(r)+' <span class="muted">/ '+fmt(p)+'</span></span></div><div class="prog'+(ov?" over":"")+'"><i style="width:'+(r>0?w:0)+'%"></i></div></div>';
+    catH+='<button class="cat" data-act="catdetail" data-c="'+esc(c[0])+'"><div class="top2"><span>'+esc(c[0])+'<span class="chev">›</span></span><span class="num'+(ov?" neg":"")+'">'+fmt(r)+' <span class="muted">/ '+fmt(p)+'</span></span></div><div class="prog'+(ov?" over":"")+'"><i style="width:'+(r>0?w:0)+'%"></i></div></button>';
   });
-  if(!any)h+='<div class="empty">Aucun poste prévu ce mois-ci.</div>';
-  h+='</div><h2>Opérations du mois</h2>';
-  if(!has){h+='<div class="list"><div class="empty">Rien d\'enregistré en '+MONTHS[m-1].toLowerCase()+'.<br>Touche le bouton + pour ajouter une dépense.</div></div>';}
-  else{
-    var rows=[];
-    txs.forEach(function(t){rows.push({date:String(t.date),act:"edtx",id:t.id,title:t.note||t.cat,cat:t.cat,amt:+t.amount||0,auto:false});});
-    autos.forEach(function(a){rows.push({date:YEAR+"-"+pad(m)+"-"+pad(a.day),act:a.src==="ech"?"edech":"edline",id:a.id,title:a.name,cat:a.cat,amt:a.amt,auto:true});});
-    rows.sort(function(a,b){return b.date.localeCompare(a.date);});
-    h+='<div class="list">';
-    rows.forEach(function(t){
-      var ty=typeOf(t.cat),sign=ty==="Revenu"?"+":(ty==="Dépense"?"−":"");
-      h+='<button class="row" data-act="'+t.act+'" data-id="'+esc(t.id)+'"><div class="l"><b>'+esc(t.title)+'</b><span>'+t.date.slice(8,10)+'/'+t.date.slice(5,7)+' · '+esc(t.cat)+(t.auto?' · prélèvement':'')+'</span></div><span class="num">'+sign+fmt(t.amt).replace("-","")+'</span></button>';
-    });
-    h+='</div>';
-  }
+  if(!any)catH+='<div class="empty">Aucun poste prévu ce mois-ci.</div>';
+  catH+='</div>';
+  h+=opsH+catH;
   var restA=0;D.ech.filter(isAchat).forEach(function(e){restA+=echInfo(e).rest;});
   h+='<h2>Achats en plusieurs fois</h2><div class="list"><button class="row" data-act="tab" data-t="cred"><div class="l"><b>Reste à payer</b><span>à partir d\'aujourd\'hui</span></div><span class="num">'+fmt(restA)+'</span></button></div>';
   var vals=[],tr=0,td=0,te=0;for(var i=1;i<=12;i++){vals.push(solde(i));tr+=planSum(i,"Revenu");td+=planSum(i,"Dépense");te+=planSum(i,"Épargne");}
@@ -468,6 +473,27 @@ async function saveCl(){
 var COLL={tx:"tx",line:"lines",ech:"ech",cl:"cl"};
 async function doDelete(){if(!SH||!SH.id)return;var c=COLL[SH.k],id=SH.id;if(await run(db.collection(c).doc(id).delete(),"Supprimé")){closeSheet();}}
 
+/* détail d'une catégorie */
+function openCat(cat){
+  var m=S.m,p=planCat(m,cat),r=realCat(m,cat),rows=monthRows(m,cat),ty=typeOf(cat);
+  var seen={};rows.forEach(function(x){if(x.auto)seen[(x.act==="edech"?"ech":"line")+":"+x.id]=1;});
+  var up=planItems(m).filter(function(i){return i.cat===cat&&i.amt!==0&&!seen[i.src+":"+i.id];});
+  var ov=r>p&&p>0,pct=p>0?Math.min(100,r/p*100):(r>0?100:0);
+  SH={k:"cat"};
+  var h='<h3>'+esc(cat)+' · '+MONTHS[m-1].toLowerCase()+'</h3><div class="sumline"><span class="muted">Réalisé</span><span class="num'+(ov?" neg":"")+'">'+fmt(r)+' <span class="muted">/ '+fmt(p)+' prévus</span></span></div><div class="prog'+(ov?" over":"")+'"><i style="width:'+pct+'%"></i></div>';
+  h+='<div class="note-line'+(ov?" neg":"")+'">'+(ov?"Dépassement de "+fmt(r-p):(p>0?(ty==="Revenu"?"":"Il reste "+fmt(r2(p-r))):""))+'</div>';
+  h+='<h2 style="margin-top:18px">Opérations</h2>';
+  if(rows.length)h+='<div class="list">'+rows.map(function(t){return opRow(t,false);}).join("")+'</div>';
+  else h+='<div class="list"><div class="empty">Aucune opération dans cette catégorie ce mois-ci.</div></div>';
+  if(up.length){
+    h+='<h2>Prévu, pas encore passé</h2><div class="list">';
+    up.forEach(function(i){h+='<button class="row" data-act="'+(i.src==="ech"?"edech":"edline")+'" data-id="'+esc(i.id)+'"><div class="l"><b>'+esc(i.name)+'</b><span>'+(i.day?'prévu le '+dueDay(i.day,m):'sans jour de prélèvement')+'</span></div><span class="num muted">'+fmt(i.amt)+'</span></button>';});
+    h+='</div>';
+  }
+  h+='<div class="btns"><button class="btn ghost" data-act="close">Fermer</button></div>';
+  openSheet(h);
+}
+
 /* réglages : sauvegarde et import */
 function exportJson(){var o={v:1};["lines","ech","cl","tx"].forEach(function(k){o[k]=D[k].map(function(d){var c={};Object.keys(d).forEach(function(x){c[x]=d[x];});return c;});});return JSON.stringify(o);}
 function openSettings(){
@@ -516,6 +542,7 @@ document.addEventListener("click",function(ev){
    case "edcl":openCl(el.getAttribute("data-id"));break;
    case "close":closeSheet();break;
    case "settings":openSettings();break;
+   case "catdetail":openCat(el.getAttribute("data-c"));break;
    case "startempty":STORE.meta.welcomed=true;saveStore();render();break;
    case "export":doExport();break;
    case "import":doImport();break;
