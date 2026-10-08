@@ -134,6 +134,51 @@ label.f{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:1
 .toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:99px;font-size:14px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
 .banner{background:var(--bad-soft);color:var(--bad);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:10px}
 .skel{height:120px;border-radius:18px;background:var(--surface2);margin-top:12px}
+
+/* tokens couleur (définis aussi sur :root, utilisés seulement par l'apparence Couleur) */
+:root{--rev:#168A52;--rev-soft:#DCF3E6;--dep:#D9541E;--epa:#2A63D6;--hero-bg:#0B6B5B;--hero-ink:#FFFFFF;--hero-fill:#A8F0DD;--hero-track:rgba(255,255,255,.22)}
+.lw{display:flex;align-items:center;gap:11px;min-width:0}
+.dot{display:none;width:11px;height:11px;border-radius:50%;background:var(--cc,var(--accent));flex:none}
+.nm{display:inline-flex;align-items:center;gap:8px}
+.row.future{opacity:.62}
+/* ===== Apparence Couleur ===== */
+:root[data-skin="color"]{--bg:#EDF3F0;--surface:#FFFFFF;--surface2:#E3ECE8;--ink:#0F1F19;--muted:#4C6158;--line:#D3E1DA;--accent:#0A8A73;--accent-soft:#CFEFE6;--rev:#168A52;--dep:#D9541E;--epa:#2A63D6;--bad:#D12F2F;--bad-soft:#FCE1E0;--hero-bg:#0B6B5B}
+@media (prefers-color-scheme: dark){:root[data-skin="color"]:not([data-theme="light"]){--bg:#0A1411;--surface:#13201B;--surface2:#1B2C26;--ink:#E9F3EE;--muted:#93AAA0;--line:#243630;--accent:#3FD1B5;--accent-soft:#12372F;--rev:#4FD18B;--dep:#FF8A5C;--epa:#7FA9FF;--bad:#FF7A70;--bad-soft:#3E1D1A;--hero-bg:#0F5547;--hero-fill:#9FF0DB}}
+:root[data-skin="dark"][data-theme="dark"],:root[data-theme="dark"][data-skin="color"]{--bg:#0A1411;--surface:#13201B;--surface2:#1B2C26;--ink:#E9F3EE;--muted:#93AAA0;--line:#243630;--accent:#3FD1B5;--accent-soft:#12372F;--rev:#4FD18B;--dep:#FF8A5C;--epa:#7FA9FF;--bad:#FF7A70;--bad-soft:#3E1D1A;--hero-bg:#0F5547;--hero-fill:#9FF0DB}
+html[data-skin="color"] .dot{display:inline-block}
+html[data-skin="color"] .title{color:var(--accent)}
+html[data-skin="color"] h2{color:var(--ink);opacity:.72}
+html[data-skin="color"] .hero{background:var(--hero-bg);border-color:transparent;color:var(--hero-ink)}
+html[data-skin="color"] .hero .lbl,html[data-skin="color"] .hero .sub,html[data-skin="color"] .hero .sum4 div{color:rgba(255,255,255,.82)}
+html[data-skin="color"] .hero .num,html[data-skin="color"] .hero .note-line,html[data-skin="color"] .hero .sum4 .num{color:#fff}
+html[data-skin="color"] .hero .neg,html[data-skin="color"] .hero .num.neg{color:#FFC9C2}
+html[data-skin="color"] .hero .prog{background:var(--hero-track)}
+html[data-skin="color"] .hero .prog i{background:var(--hero-fill)}
+html[data-skin="color"] .hero .prog.over i{background:#FFB0A6}
+html[data-skin="color"] .mini{border-top:4px solid var(--mc,var(--line));background:var(--surface)}
+html[data-skin="color"] .m-rev{--mc:var(--rev)}
+html[data-skin="color"] .m-rev .v{color:var(--rev)}
+html[data-skin="color"] .m-epa{--mc:var(--epa)}
+html[data-skin="color"] .m-epa .v{color:var(--epa)}
+html[data-skin="color"] .m-bad{--mc:var(--bad);background:var(--bad-soft)}
+html[data-skin="color"] .m-bad .v{color:var(--bad)}
+html[data-skin="color"] .t-rev{color:var(--rev)}
+html[data-skin="color"] .t-epa{color:var(--epa)}
+html[data-skin="color"] .sum4 .t-rev{color:var(--rev)}
+html[data-skin="color"] .sum4 .t-epa{color:var(--epa)}
+html[data-skin="color"] .sum4 .t-dep{color:var(--dep)}
+html[data-skin="color"] .cat .prog i{background:var(--cc)}
+html[data-skin="color"] .cat .prog.over i{background:var(--bad)}
+html[data-skin="color"] .cat .prog{background:color-mix(in srgb,var(--cc) 16%,var(--surface2))}
+html[data-skin="color"] .grp{background:color-mix(in srgb,var(--cc,var(--accent)) 18%,var(--surface));color:var(--ink)}
+html[data-skin="color"] .credit .prog i{background:var(--epa)}
+html[data-skin="color"] .tab[aria-current="page"] svg{background:var(--accent-soft);border-radius:12px;padding:4px;width:34px;height:28px}
+html[data-skin="color"] .row.future .num{color:var(--muted)}
+html[data-skin="color"] svg.chart .bar{fill:var(--rev);opacity:.38}
+html[data-skin="color"] svg.chart .bar.sel{fill:var(--rev);opacity:1}
+html[data-skin="color"] svg.chart .bar.n{fill:var(--bad);opacity:.38}
+html[data-skin="color"] svg.chart .bar.n.sel{fill:var(--bad);opacity:1}
+html[data-skin="color"] .chip[aria-pressed="true"]{background:var(--accent)}
 </style>
 </head><body>
 <div class="app" id="app">
@@ -158,6 +203,8 @@ var CATS=[
 var CAT_TYPE={}; CATS.forEach(function(c){CAT_TYPE[c[0]]=c[1];});
 function catsOf(t){return CATS.filter(function(c){return c[1]===t;}).map(function(c){return c[0];});}
 var TYPES=["Dépense","Revenu","Épargne"];
+var CAT_COLOR={"Salaire":"#1B9B5A","Autres revenus":"#56B870","Logement":"#3B82F6","Factures (énergie, télécom)":"#F59E0B","Transport":"#8B5CF6","Courses":"#EF6B3E","Abonnements & loisirs":"#EC4899","Impôts & taxes":"#64748B","Frais bancaires":"#0EA5A5","Prêts & crédits":"#B7791F","Équipement maison":"#7CB518","Autres dépenses":"#94A3B8","Épargne":"#2F6FDE"};
+function cc(cat){return CAT_COLOR[cat]||"#94A3B8";}
 
 var now=new Date();
 var S={tab:"home",m:now.getFullYear()>YEAR?12:(now.getFullYear()<YEAR?1:now.getMonth()+1),showZero:false};
@@ -252,16 +299,22 @@ function monthNav(){
 }
 function amtCls(n){return n<0?" neg":"";}
 
-function monthRows(m,cat){
-  var rows=[];
+function monthRows(m,cat,doneOnly){
+  var rows=[],seen={};
   txMonth(m).forEach(function(t){if(cat&&t.cat!==cat)return;rows.push({date:String(t.date),act:"edtx",id:t.id,title:t.note||t.cat,cat:t.cat,amt:+t.amount||0,auto:false});});
-  autoItems(m).forEach(function(a){if(cat&&a.cat!==cat)return;rows.push({date:YEAR+"-"+pad(m)+"-"+pad(a.day),act:a.src==="ech"?"edech":"edline",id:a.id,title:a.name,cat:a.cat,amt:a.amt,auto:true});});
-  rows.sort(function(a,b){return b.date.localeCompare(a.date);});
+  autoItems(m).forEach(function(a){seen[a.src+":"+a.id]=1;if(cat&&a.cat!==cat)return;rows.push({date:YEAR+"-"+pad(m)+"-"+pad(a.day),act:a.src==="ech"?"edech":"edline",id:a.id,title:a.name,cat:a.cat,amt:a.amt,auto:true});});
+  if(!doneOnly)planItems(m).forEach(function(i){
+    if(i.amt===0||seen[i.src+":"+i.id])return;if(cat&&i.cat!==cat)return;
+    rows.push({date:i.day?YEAR+"-"+pad(m)+"-"+pad(dueDay(i.day,m)):"",act:i.src==="ech"?"edech":"edline",id:i.id,title:i.name,cat:i.cat,amt:i.amt,auto:false,future:true});
+  });
+  rows.sort(function(a,b){if(!a.date&&!b.date)return 0;if(!a.date)return 1;if(!b.date)return -1;return b.date.localeCompare(a.date);});
   return rows;
 }
 function opRow(t,showCat){
-  var ty=typeOf(t.cat),sign=ty==="Revenu"?"+":(ty==="Dépense"?"−":"");
-  return '<button class="row" data-act="'+t.act+'" data-id="'+esc(t.id)+'"><div class="l"><b>'+esc(t.title)+'</b><span>'+t.date.slice(8,10)+'/'+t.date.slice(5,7)+(showCat===false?'':' · '+esc(t.cat))+(t.auto?' · prélèvement':'')+'</span></div><span class="num">'+sign+fmt(t.amt).replace("-","")+'</span></button>';
+  var ty=typeOf(t.cat),sign=ty==="Revenu"?"+":(ty==="Dépense"?"−":""),tc=ty==="Revenu"?"t-rev":(ty==="Épargne"?"t-epa":"t-dep");
+  var d=t.date?t.date.slice(8,10)+'/'+t.date.slice(5,7):"",parts=[];
+  if(d)parts.push(d);if(showCat!==false)parts.push(esc(t.cat));if(t.auto)parts.push("prélèvement");if(t.future)parts.push(d?"à venir":"prévu, sans jour");
+  return '<button class="row'+(t.future?" future":"")+'" style="--cc:'+cc(t.cat)+'" data-act="'+t.act+'" data-id="'+esc(t.id)+'"><div class="lw"><span class="dot"></span><div class="l"><b>'+esc(t.title)+'</b><span>'+parts.join(" · ")+'</span></div></div><span class="num '+tc+'">'+sign+fmt(t.amt).replace("-","")+'</span></button>';
 }
 function isEmpty(){return !D.lines.length&&!D.ech.length&&!D.cl.length&&!D.tx.length;}
 function viewHome(){
@@ -274,18 +327,19 @@ function viewHome(){
   h+='<div class="note-line'+(over?" neg":"")+'">'+(over?"Dépassement de "+fmt(-left):(has?"Il reste "+fmt(left)+" à dépenser":"Aucune dépense enregistrée ce mois-ci"))+'</div></section>';
   var sp=solde(m),sr=r2(rRev-rDep-rEp);
   h+='<div class="minis">';
-  h+='<div class="mini"><span class="l">Revenus</span><span class="v num">'+(has?fmt(rRev):"—")+'</span><span class="p">prévu '+fmt(pRev)+'</span></div>';
-  h+='<div class="mini"><span class="l">Épargne</span><span class="v num">'+(has?fmt(rEp):"—")+'</span><span class="p">prévu '+fmt(pEp)+'</span></div>';
-  h+='<div class="mini"><span class="l">Solde prévu</span><span class="v num'+amtCls(sp)+'">'+fmt(sp)+'</span><span class="p">revenus − dépenses − épargne</span></div>';
-  h+='<div class="mini"><span class="l">Solde réel</span><span class="v num'+amtCls(sr)+'">'+(has?fmt(sr):"—")+'</span><span class="p">'+(has?"saisies et prélèvements passés":"rien d'enregistré")+'</span></div></div>';
+  h+='<div class="mini m-rev"><span class="l">Revenus</span><span class="v num">'+(has?fmt(rRev):"—")+'</span><span class="p">prévu '+fmt(pRev)+'</span></div>';
+  h+='<div class="mini m-epa"><span class="l">Épargne</span><span class="v num">'+(has?fmt(rEp):"—")+'</span><span class="p">prévu '+fmt(pEp)+'</span></div>';
+  h+='<div class="mini '+(sp<0?"m-bad":"m-rev")+'"><span class="l">Solde prévu</span><span class="v num'+amtCls(sp)+'">'+fmt(sp)+'</span><span class="p">revenus − dépenses − épargne</span></div>';
+  h+='<div class="mini '+(!has?"":(sr<0?"m-bad":"m-rev"))+'"><span class="l">Solde réel</span><span class="v num'+amtCls(sr)+'">'+(has?fmt(sr):"—")+'</span><span class="p">'+(has?"saisies et prélèvements passés":"rien d'enregistré")+'</span></div></div>';
   var opsH='<h2>Opérations du mois</h2>';
-  if(!has){opsH+='<div class="list"><div class="empty">Rien d\'enregistré en '+MONTHS[m-1].toLowerCase()+'.<br>Touche le bouton + pour ajouter une dépense.</div></div>';}
-  else{opsH+='<div class="list">'+monthRows(m).map(function(t){return opRow(t);}).join("")+'</div>';}
+  var allRows=monthRows(m);
+  if(!allRows.length){opsH+='<div class="list"><div class="empty">Rien de prévu ni d\'enregistré en '+MONTHS[m-1].toLowerCase()+'.<br>Touche le bouton + pour ajouter une dépense.</div></div>';}
+  else{opsH+='<div class="list">'+allRows.map(function(t){return opRow(t);}).join("")+'</div><div class="muted" style="font-size:12px;margin-top:8px">Les lignes estompées sont prévues mais pas encore passées.</div>';}
   var catH='<h2>Par catégorie</h2><div class="list">',any=false;
   CATS.filter(function(c){return c[1]!=="Revenu";}).forEach(function(c){
     var p=planCat(m,c[0]),r=realCat(m,c[0]);if(!p&&!r)return;any=true;
     var ov=r>p,w=p>0?Math.min(100,r/p*100):100;
-    catH+='<button class="cat" data-act="catdetail" data-c="'+esc(c[0])+'"><div class="top2"><span>'+esc(c[0])+'<span class="chev">›</span></span><span class="num'+(ov?" neg":"")+'">'+fmt(r)+' <span class="muted">/ '+fmt(p)+'</span></span></div><div class="prog'+(ov?" over":"")+'"><i style="width:'+(r>0?w:0)+'%"></i></div></button>';
+    catH+='<button class="cat" style="--cc:'+cc(c[0])+'" data-act="catdetail" data-c="'+esc(c[0])+'"><div class="top2"><span class="nm"><span class="dot"></span>'+esc(c[0])+'<span class="chev">›</span></span><span class="num'+(ov?" neg":"")+'">'+fmt(r)+' <span class="muted">/ '+fmt(p)+'</span></span></div><div class="prog'+(ov?" over":"")+'"><i style="width:'+(r>0?w:0)+'%"></i></div></button>';
   });
   if(!any)catH+='<div class="empty">Aucun poste prévu ce mois-ci.</div>';
   catH+='</div>';
@@ -293,14 +347,14 @@ function viewHome(){
   var restA=0;D.ech.filter(isAchat).forEach(function(e){restA+=echInfo(e).rest;});
   h+='<h2>Achats en plusieurs fois</h2><div class="list"><button class="row" data-act="tab" data-t="cred"><div class="l"><b>Reste à payer</b><span>à partir d\'aujourd\'hui</span></div><span class="num">'+fmt(restA)+'</span></button></div>';
   var vals=[],tr=0,td=0,te=0;for(var i=1;i<=12;i++){vals.push(solde(i));tr+=planSum(i,"Revenu");td+=planSum(i,"Dépense");te+=planSum(i,"Épargne");}
-  h+='<h2>Solde prévu par mois</h2><section class="card">'+barChart(vals,m,function(v){return eur0.format(v);})+'<div class="sum4"><div>Revenus<span class="num">'+eur0.format(tr)+'</span></div><div>Dépenses<span class="num">'+eur0.format(td)+'</span></div><div>Épargne<span class="num">'+eur0.format(te)+'</span></div></div><div class="muted" style="font-size:12px;margin-top:10px">Total prévu '+YEAR+' : <span class="num'+amtCls(r2(tr-td-te))+'">'+fmt(tr-td-te)+'</span>. Touche une barre pour changer de mois.</div></section>';
+  h+='<h2>Solde prévu par mois</h2><section class="card">'+barChart(vals,m,function(v){return eur0.format(v);})+'<div class="sum4"><div>Revenus<span class="num t-rev">'+eur0.format(tr)+'</span></div><div>Dépenses<span class="num t-dep">'+eur0.format(td)+'</span></div><div>Épargne<span class="num t-epa">'+eur0.format(te)+'</span></div></div><div class="muted" style="font-size:12px;margin-top:10px">Total prévu '+YEAR+' : <span class="num'+amtCls(r2(tr-td-te))+'">'+fmt(tr-td-te)+'</span>. Touche une barre pour changer de mois.</div></section>';
   return h;
 }
 
 function viewBudget(){
   var m=S.m,items=planItems(m),h="";
   var pr=planSum(m,"Revenu"),pd=planSum(m,"Dépense"),pe=planSum(m,"Épargne"),sd=solde(m);
-  h+='<section class="card"><div class="sum4" style="margin-top:0"><div>Revenus<span class="num">'+fmt(pr)+'</span></div><div>Dépenses<span class="num">'+fmt(pd)+'</span></div><div>Épargne<span class="num">'+fmt(pe)+'</span></div></div><div style="margin-top:12px;display:flex;justify-content:space-between"><span class="muted">Solde prévu</span><span class="num'+amtCls(sd)+'">'+fmt(sd)+'</span></div></section>';
+  h+='<section class="card"><div class="sum4" style="margin-top:0"><div>Revenus<span class="num t-rev">'+fmt(pr)+'</span></div><div>Dépenses<span class="num t-dep">'+fmt(pd)+'</span></div><div>Épargne<span class="num t-epa">'+fmt(pe)+'</span></div></div><div style="margin-top:12px;display:flex;justify-content:space-between"><span class="muted">Solde prévu</span><span class="num'+amtCls(sd)+'">'+fmt(sd)+'</span></div></section>';
   var zeroCount=0;
   CATS.forEach(function(c){
     var its=items.filter(function(i){return i.cat===c[0];});
@@ -308,9 +362,9 @@ function viewBudget(){
     zeroCount+=its.filter(function(i){return i.amt===0;}).length;
     if(!shown.length)return;
     var sub=its.reduce(function(a,i){return a+i.amt;},0);
-    h+='<h2>'+esc(c[0])+'</h2><div class="list"><div class="grp"><span>'+c[1]+'</span><span class="num">'+fmt(sub)+'</span></div>';
+    h+='<h2>'+esc(c[0])+'</h2><div class="list"><div class="grp" style="--cc:'+cc(c[0])+'"><span class="nm"><span class="dot"></span>'+c[1]+'</span><span class="num">'+fmt(sub)+'</span></div>';
     shown.forEach(function(i){
-      h+='<button class="row" data-act="'+(i.src==="ech"?"edech":"edline")+'" data-id="'+esc(i.id)+'"><div class="l"><b>'+esc(i.name)+'</b>'+(i.src==="ech"||i.day?'<span>'+(i.src==="ech"?"Échéancier · ":"")+'le '+dueDay(i.day,m)+(i.amt!==0&&isDue(m,i.day)?' · prélevé ✓':'')+'</span>':'')+'</div><span class="num'+(i.amt===0?" muted":"")+'">'+fmt(i.amt)+'</span></button>';
+      h+='<button class="row" style="--cc:'+cc(i.cat)+'" data-act="'+(i.src==="ech"?"edech":"edline")+'" data-id="'+esc(i.id)+'"><div class="lw"><span class="dot"></span><div class="l"><b>'+esc(i.name)+'</b>'+(i.src==="ech"||i.day?'<span>'+(i.src==="ech"?"Échéancier · ":"")+'le '+dueDay(i.day,m)+(i.amt!==0&&isDue(m,i.day)?' · prélevé ✓':'')+'</span>':'')+'</div></div><span class="num'+(i.amt===0?" muted":"")+'">'+fmt(i.amt)+'</span></button>';
     });
     h+='</div>';
   });
@@ -475,7 +529,7 @@ async function doDelete(){if(!SH||!SH.id)return;var c=COLL[SH.k],id=SH.id;if(awa
 
 /* détail d'une catégorie */
 function openCat(cat){
-  var m=S.m,p=planCat(m,cat),r=realCat(m,cat),rows=monthRows(m,cat),ty=typeOf(cat);
+  var m=S.m,p=planCat(m,cat),r=realCat(m,cat),rows=monthRows(m,cat,true),ty=typeOf(cat);
   var seen={};rows.forEach(function(x){if(x.auto)seen[(x.act==="edech"?"ech":"line")+":"+x.id]=1;});
   var up=planItems(m).filter(function(i){return i.cat===cat&&i.amt!==0&&!seen[i.src+":"+i.id];});
   var ov=r>p&&p>0,pct=p>0?Math.min(100,r/p*100):(r>0?100:0);
@@ -487,7 +541,7 @@ function openCat(cat){
   else h+='<div class="list"><div class="empty">Aucune opération dans cette catégorie ce mois-ci.</div></div>';
   if(up.length){
     h+='<h2>Prévu, pas encore passé</h2><div class="list">';
-    up.forEach(function(i){h+='<button class="row" data-act="'+(i.src==="ech"?"edech":"edline")+'" data-id="'+esc(i.id)+'"><div class="l"><b>'+esc(i.name)+'</b><span>'+(i.day?'prévu le '+dueDay(i.day,m):'sans jour de prélèvement')+'</span></div><span class="num muted">'+fmt(i.amt)+'</span></button>';});
+    up.forEach(function(i){h+='<button class="row future" style="--cc:'+cc(i.cat)+'" data-act="'+(i.src==="ech"?"edech":"edline")+'" data-id="'+esc(i.id)+'"><div class="lw"><span class="dot"></span><div class="l"><b>'+esc(i.name)+'</b><span>'+(i.day?'prévu le '+dueDay(i.day,m):'sans jour de prélèvement')+'</span></div></div><span class="num">'+fmt(i.amt)+'</span></button>';});
     h+='</div>';
   }
   h+='<div class="btns"><button class="btn ghost" data-act="close">Fermer</button></div>';
@@ -499,6 +553,7 @@ function exportJson(){var o={v:1};["lines","ech","cl","tx"].forEach(function(k){
 function openSettings(){
   SH={k:"set"};
   var h='<h3>Réglages</h3><p class="muted" style="margin:0 0 4px;font-size:13px">Tes données restent sur cet appareil, dans ce navigateur. Fais une sauvegarde de temps en temps.</p>';
+  h+='<label class="f">Apparence</label><div class="seg two" id="skinseg">'+[["color","Couleur"],["plain","Sobre"]].map(function(x){return '<button type="button" data-act="skin" data-v="'+x[0]+'" aria-pressed="'+((STORE.meta.skin||"color")===x[0])+'">'+x[1]+'</button>';}).join("")+'</div>';
   h+='<label class="f">Sauvegarder</label><button class="btn ghost" data-act="export">Copier mes données</button><textarea class="in-t" id="bk" rows="4" readonly hidden style="margin-top:8px;font-family:var(--f-num);font-size:12px"></textarea>';
   h+='<label class="f" for="imp">Importer des données</label><textarea class="in-t" id="imp" rows="4" placeholder="Colle ici le texte de ta sauvegarde" style="font-family:var(--f-num);font-size:12px"></textarea>';
   h+='<div class="fill"><button class="btn small" data-act="import">Importer</button><label class="btn ghost small" style="margin:0;text-align:center;flex:1" for="impf">Choisir un fichier</label><input type="file" id="impf" accept=".json,application/json,text/plain" hidden></div>';
@@ -520,7 +575,7 @@ function doImport(){
   ["lines","ech","cl","tx"].forEach(function(k){STORE[k]={};(Array.isArray(o[k])?o[k]:[]).forEach(function(d){if(!d||typeof d!=="object")return;var id=String(d.id||uid()),c={};Object.keys(d).forEach(function(x){if(x!=="id")c[x]=d[x];});STORE[k][id]=c;});});
   STORE.meta.welcomed=true;saveStore();notifyAll();closeSheet();toast("Données importées");
 }
-function doReset(){STORE.lines={};STORE.ech={};STORE.cl={};STORE.tx={};STORE.meta={};saveStore();notifyAll();closeSheet();toast("Données effacées");}
+function doReset(){var sk=STORE.meta.skin;STORE.lines={};STORE.ech={};STORE.cl={};STORE.tx={};STORE.meta={};if(sk)STORE.meta.skin=sk;saveStore();notifyAll();closeSheet();toast("Données effacées");}
 
 /* ---------- événements ---------- */
 document.addEventListener("click",function(ev){
@@ -542,6 +597,7 @@ document.addEventListener("click",function(ev){
    case "edcl":openCl(el.getAttribute("data-id"));break;
    case "close":closeSheet();break;
    case "settings":openSettings();break;
+   case "skin":STORE.meta.skin=el.getAttribute("data-v");saveStore();applySkin();document.querySelectorAll("#skinseg button").forEach(function(b){b.setAttribute("aria-pressed",String(b.getAttribute("data-v")===STORE.meta.skin));});break;
    case "catdetail":openCat(el.getAttribute("data-c"));break;
    case "startempty":STORE.meta.welcomed=true;saveStore();render();break;
    case "export":doExport();break;
@@ -587,7 +643,8 @@ function sub(name,key){
     D[key]=snap.docs.map(function(d){var o=Object.assign({},d.data());o.id=d.id;return o;});LOADED[key]=true;render();
   });
 }
-loadStore();db=makeDb();dbState="ok";
+function applySkin(){document.documentElement.setAttribute("data-skin",(STORE.meta&&STORE.meta.skin)||"color");}
+loadStore();applySkin();db=makeDb();dbState="ok";
 render();
 sub("lines","lines");sub("ech","ech");sub("cl","cl");sub("tx","tx");
 if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}
