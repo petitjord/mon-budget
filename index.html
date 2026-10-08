@@ -307,7 +307,7 @@ function monthRows(m,cat,doneOnly){
     if(i.amt===0||seen[i.src+":"+i.id])return;if(cat&&i.cat!==cat)return;
     rows.push({date:i.day?YEAR+"-"+pad(m)+"-"+pad(dueDay(i.day,m)):"",act:i.src==="ech"?"edech":"edline",id:i.id,title:i.name,cat:i.cat,amt:i.amt,auto:false,future:true});
   });
-  rows.sort(function(a,b){if(!a.date&&!b.date)return 0;if(!a.date)return 1;if(!b.date)return -1;return b.date.localeCompare(a.date);});
+  rows.sort(function(a,b){if(!a.date&&!b.date)return 0;if(!a.date)return 1;if(!b.date)return -1;return a.date.localeCompare(b.date);});
   return rows;
 }
 function opRow(t,showCat){
