@@ -248,6 +248,10 @@ function autoItems(m){
 function realSum(m,type){var s=0;txMonth(m).forEach(function(t){if(typeOf(t.cat)===type)s+=+t.amount||0;});autoItems(m).forEach(function(i){if(typeOf(i.cat)===type)s+=i.amt;});return r2(s);}
 function realCat(m,cat){var s=0;txMonth(m).forEach(function(t){if(t.cat===cat)s+=+t.amount||0;});autoItems(m).forEach(function(i){if(i.cat===cat)s+=i.amt;});return r2(s);}
 function solde(m){return r2(planSum(m,"Revenu")-planSum(m,"Dépense")-planSum(m,"Épargne"));}
+function clDayOf(l){var d=parseInt(l.day,10);return d>=1&&d<=31?d:0;}
+function clPassed(l,m){return isDue(m,clDayOf(l)||31);}
+function clItems(m){var o=[];D.cl.forEach(function(l){var a=+((l.m||[])[m-1])||0;if(!a)return;var d=clDayOf(l);o.push({id:l.id,name:l.name,kind:l.kind,amt:a,day:d?dueDay(d,m):0,done:clPassed(l,m)});});return o;}
+function clBal(m){var s=0;clItems(m).forEach(function(i){if(i.done)s+=i.kind==="recette"?i.amt:-i.amt;});return r2(s);}
 function clSum(m,kind){var s=0;D.cl.forEach(function(l){if(l.kind===kind)s+=+((l.m||[])[m-1])||0;});return r2(s);}
 function isAchat(e){return e.kind?e.kind==="achat":e.cat==="Équipement maison";}
 function echInfo(e){
@@ -313,7 +317,7 @@ function monthRows(m,cat,doneOnly){
 function opRow(t,showCat){
   var ty=typeOf(t.cat),sign=ty==="Revenu"?"+":(ty==="Dépense"?"−":""),tc=ty==="Revenu"?"t-rev":(ty==="Épargne"?"t-epa":"t-dep");
   var d=t.date?t.date.slice(8,10)+'/'+t.date.slice(5,7):"",parts=[];
-  if(d)parts.push(d);if(showCat!==false)parts.push(esc(t.cat));if(t.auto)parts.push("prélèvement");if(t.future)parts.push(d?"à venir":"prévu, sans jour");
+  if(d)parts.push(d);if(showCat!==false)parts.push(esc(t.cat));if(t.auto)parts.push("prélevé ✓");if(t.future)parts.push(d?"à venir":"prévu, sans jour");
   return '<button class="row'+(t.future?" future":"")+'" style="--cc:'+cc(t.cat)+'" data-act="'+t.act+'" data-id="'+esc(t.id)+'"><div class="lw"><span class="dot"></span><div class="l"><b>'+esc(t.title)+'</b><span>'+parts.join(" · ")+'</span></div></div><span class="num '+tc+'">'+sign+fmt(t.amt).replace("-","")+'</span></button>';
 }
 function isEmpty(){return !D.lines.length&&!D.ech.length&&!D.cl.length&&!D.tx.length;}
@@ -396,11 +400,19 @@ function viewClichy(){
   var yr=0,yc=0;for(var j=1;j<=12;j++){yr+=clSum(j,"recette");yc+=clSum(j,"charge");}
   h+='<p class="muted" style="margin:4px 0 12px;font-size:13px">Gestion locative indépendante : ces montants ne sont pas comptés dans ton budget.</p>';
   h+='<section class="card hero"><span class="lbl">Recette nette en '+MONTHS[m-1].toLowerCase()+'</span><span class="big num'+amtCls(net)+'">'+fmt(net)+'</span><span class="sub">Cumul depuis janvier : <span class="num'+amtCls(r2(cum))+'">'+fmt(cum)+'</span></span><div class="sum4"><div>Loyers<span class="num">'+fmt(rec)+'</span></div><div>Charges<span class="num">'+fmt(cha)+'</span></div><div>Année<span class="num'+amtCls(r2(yr-yc))+'">'+eur0.format(yr-yc)+'</span></div></div></section>';
+  var its=clItems(m).sort(function(a,b){return (a.day||99)-(b.day||99);}),dn=its.filter(function(i){return i.done;}),up=its.filter(function(i){return !i.done;}),bal=clBal(m),bc=0;
+  for(var q=1;q<=m;q++)bc+=clBal(q);bc=r2(bc);
+  var rest=r2(net-bal);
+  h+='<section class="card hero" style="margin-top:12px"><span class="lbl">Solde réel à ce jour (Clichy)</span><span class="big num'+amtCls(bal)+'">'+fmt(bal)+'</span><span class="sub">encaissé − prélevé en '+MONTHS[m-1].toLowerCase()+' · cumul depuis janvier : <span class="num'+amtCls(bc)+'">'+fmt(bc)+'</span></span><div class="sum4"><div>Encore à venir<span class="num'+amtCls(rest)+'">'+fmt(rest)+'</span></div><div>Prévu fin de mois<span class="num'+amtCls(net)+'">'+fmt(net)+'</span></div></div></section>';
+  function clRows(a){return a.map(function(i){return '<button class="row'+(i.done?"":" future")+'" data-act="edcl" data-id="'+esc(i.id)+'"><div class="l"><b>'+esc(i.name)+'</b><span>'+(i.day?String(i.day).padStart(2,"0")+'/'+pad(m)+' · ':'sans jour · ')+(i.kind==="recette"?"encaissement":"prélèvement")+(i.done?" ✓":"")+'</span></div><span class="num '+(i.kind==="recette"?"t-rev":"t-dep")+'">'+(i.kind==="recette"?"+":"−")+fmt(i.amt)+'</span></button>';}).join("");}
+  h+='<h2>Déjà passé ('+dn.length+')</h2><div class="list">'+(dn.length?clRows(dn):'<div class="empty">Rien de passé pour l\'instant.</div>')+'</div>';
+  h+='<h2>À venir ('+up.length+')</h2><div class="list">'+(up.length?clRows(up):'<div class="empty">Tout est passé ce mois-ci.</div>')+'</div>';
+  h+='<h2 style="margin-top:20px">Détail des lignes</h2>';
   ["recette","charge"].forEach(function(k){
     var ls=D.cl.filter(function(l){return l.kind===k;}).sort(byOrder);
     h+='<h2>'+(k==="recette"?"Recettes":"Charges et crédit")+'</h2><div class="list">';
     if(!ls.length)h+='<div class="empty">Aucune ligne.</div>';
-    ls.forEach(function(l){var v=+((l.m||[])[m-1])||0;h+='<button class="row" data-act="edcl" data-id="'+esc(l.id)+'"><div class="l"><b>'+esc(l.name)+'</b></div><span class="num'+(v===0?" muted":"")+'">'+fmt(v)+'</span></button>';});
+    ls.forEach(function(l){var v=+((l.m||[])[m-1])||0;var dd=clDayOf(l),sb=dd?'<span>'+(k==="recette"?"le ":"le ")+dueDay(dd,m)+(v!==0&&clPassed(l,m)?(k==="recette"?" · encaissé ✓":" · prélevé ✓"):"")+'</span>':"";h+='<button class="row" data-act="edcl" data-id="'+esc(l.id)+'"><div class="l"><b>'+esc(l.name)+'</b>'+sb+'</div><span class="num'+(v===0?" muted":"")+'">'+fmt(v)+'</span></button>';});
     h+='</div>';
   });
   h+='<h2>Recette nette par mois</h2><section class="card">'+barChart(vals,m,function(v){return eur0.format(v);})+'</section>';
@@ -513,13 +525,16 @@ function openCl(id){
   SH={k:"cl",id:id||null,o:l?l.o:(D.cl.reduce(function(a,x){return Math.max(a,x.o||0);},0)+1),kind:l?l.kind:"charge"};
   var h='<h3>'+(l?"Modifier la ligne Clichy":"Nouvelle ligne Clichy")+'</h3><div class="seg two" id="seg">'+[["charge","Charge"],["recette","Recette"]].map(function(x){return '<button type="button" data-act="ckind" data-v="'+x[0]+'" aria-pressed="'+(SH.kind===x[0])+'">'+x[1]+'</button>';}).join("")+'</div>';
   h+='<label class="f" for="f-name">Nom</label><input class="in-t" id="f-name" maxlength="60" value="'+esc(l?l.name:"")+'" placeholder="Ex. Charges copropriété">';
+  h+='<label class="f" for="f-day">Jour du prélèvement / de l\'encaissement (facultatif)</label><input class="in-t num" id="f-day" inputmode="numeric" maxlength="2" placeholder="Ex. 5" value="'+(l&&l.day?esc(l.day):"")+'">';
   h+='<label class="f">Montant de chaque mois (€)</label>'+monthGrid(l?(l.m||[]):[])+fillBlock();
   h+='<div class="btns"><button class="btn" data-act="savecl">Enregistrer</button><button class="btn ghost" data-act="close">Annuler</button></div>'+(l?delBlock():"");
   openSheet(h);
 }
 async function saveCl(){
   var name=$("f-name").value.trim();if(!name){toast("Donne un nom à la ligne");return;}
-  var data={name:name,kind:SH.kind,m:readGrid(),o:SH.o},p=SH.id?db.collection("cl").doc(SH.id).set(data):db.collection("cl").add(data);
+  var dv=$("f-day").value.trim(),day=dv===""?0:parseInt(dv,10);
+  if(dv!==""&&!(day>=1&&day<=31)){toast("Le jour doit être entre 1 et 31");return;}
+  var data={name:name,kind:SH.kind,m:readGrid(),o:SH.o},p;if(day)data.day=day;p=SH.id?db.collection("cl").doc(SH.id).set(data):db.collection("cl").add(data);
   if(await run(p,"Enregistré")){closeSheet();}
 }
 
