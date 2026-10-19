@@ -157,6 +157,9 @@ svg.donut .dc2{font-family:var(--f-ui);font-size:10.5px;font-weight:600;fill:var
 .pchip[aria-pressed="true"] small{opacity:.9}
 .envsub{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:6px}
 .envsub span{color:var(--accent);font-weight:700}
+.mini.tap{text-align:left;width:100%;cursor:pointer;transition:transform .12s}
+.mini.tap:active{transform:scale(.97)}
+.mini .l i{font-style:normal;margin-left:auto;font-size:15px;opacity:.6}
 .legend{list-style:none;margin:0;padding:0;flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr);gap:7px}
 .legend li{display:flex;align-items:center;gap:8px;font-size:13px;min-width:0}
 .legend .ln{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -503,8 +506,8 @@ function viewHome(){
   h+='<div class="minis">';
   h+='<div class="mini m-rev"><span class="l">Revenus</span><span class="v num">'+(has?fmt(rRev):"—")+'</span><span class="p">prévu '+fmt(pRev)+'</span></div>';
   h+='<div class="mini m-epa"><span class="l">Épargne</span><span class="v num">'+(has?fmt(rEp):"—")+'</span><span class="p">prévu '+fmt(pEp)+'</span></div>';
-  h+='<div class="mini '+(sp<0?"m-bad":"m-rev")+'"><span class="l">Solde prévu</span><span class="v num'+amtCls(sp)+'">'+fmt(sp)+'</span><span class="p">revenus − dépenses − épargne</span></div>';
-  h+='<div class="mini '+(!has?"":(sr<0?"m-bad":"m-rev"))+'"><span class="l">Solde réel</span><span class="v num'+amtCls(sr)+'">'+(has?fmt(sr):"—")+'</span><span class="p">'+(has?"saisies et prélèvements passés":"rien d'enregistré")+'</span></div></div>';
+  h+='<button class="mini tap '+(sp<0?"m-bad":"m-rev")+'" data-act="solde" data-v="prevu"><span class="l">Solde prévu<i>›</i></span><span class="v num'+amtCls(sp)+'">'+fmt(sp)+'</span><span class="p">revenus − dépenses − épargne</span></button>';
+  h+='<button class="mini tap '+(!has?"":(sr<0?"m-bad":"m-rev"))+'" data-act="solde" data-v="reel"><span class="l">Solde réel<i>›</i></span><span class="v num'+amtCls(sr)+'">'+(has?fmt(sr):"—")+'</span><span class="p">'+(has?"saisies et prélèvements passés":"rien d'enregistré")+'</span></button></div>';
   var opsH='<h2>Opérations du mois</h2>';
   var allRows=monthRows(m);
   if(!allRows.length){opsH+='<div class="list"><div class="empty">Rien de prévu ni d\'enregistré en '+MONTHS[m-1].toLowerCase()+'.<br>Touche le bouton + pour ajouter une dépense.</div></div>';}
@@ -517,13 +520,6 @@ function viewHome(){
   });
   if(!any)catH+='<div class="empty">Aucun poste prévu ce mois-ci.</div>';
   catH+='</div>';
-  var envs=envsOf("Dépense").filter(function(l){return clAmt(l,m)>0;});
-  if(envs.length){
-    var eh='<h2>Mes budgets du mois</h2><div class="list">';
-    envs.forEach(function(l){var b=clAmt(l,m),sp=envSpent(m,l.id),r=r2(b-sp),ov=sp>b,w=Math.min(100,sp/b*100);
-      eh+='<button class="cat" style="--cc:'+cc(l.cat)+'" data-act="envadd" data-id="'+esc(l.id)+'"><div class="top2"><span class="nm"><span class="dot"></span>'+esc(l.name)+'</span><span class="num'+(ov?" neg":"")+'">'+(ov?"dépassé de "+fmt(-r):"reste "+fmt(r))+'</span></div><div class="prog'+(ov?" over":"")+'"><i style="width:'+(sp>0?w:0)+'%"></i></div><div class="envsub">'+fmt(sp)+' sur '+fmt(b)+'<span>+ ajouter</span></div></button>';});
-    h+=eh+'</div>';
-  }
   h+=analysesHtml(m)+opsH+catH;
   var restA=0;D.ech.filter(isAchat).forEach(function(e){restA+=echInfo(e).rest;});
   h+='<h2>Achats en plusieurs fois</h2><div class="list"><button class="row" data-act="tab" data-t="cred"><div class="l"><b>Reste à payer</b><span>à partir d\'aujourd\'hui</span></div><span class="num">'+fmt(restA)+'</span></button></div>';
@@ -825,6 +821,24 @@ var COLL={tx:"tx",line:"lines",ech:"ech"};PK.forEach(function(k){COLL[k]=k;});
 async function doDelete(){if(!SH||!SH.id)return;var c=COLL[SH.k],id=SH.id;if(await run(db.collection(c).doc(id).delete(),"Supprimé")){closeSheet();}}
 
 /* détail d'une catégorie */
+function openSolde(kind){
+  var m=S.m,real=kind==="reel",rows;
+  if(real)rows=monthRows(m,null,true).filter(function(r){return !r.future;});
+  else rows=planItems(m).filter(function(i){return i.amt!==0;}).map(function(i){var d=i.day?dueDay(i.day,m):0;return {date:d?YEAR+"-"+pad(m)+"-"+pad(d):"",act:ACT[i.src],id:i.id,title:i.name,cat:i.cat,amt:i.amt};}).sort(function(a,b){return (a.date||"9").localeCompare(b.date||"9");});
+  var tot={Revenu:0,Dépense:0,Épargne:0};rows.forEach(function(r){tot[typeOf(r.cat)]+=r.amt;});
+  var sol=r2(tot.Revenu-tot.Dépense-tot.Épargne);
+  SH={k:"solde"};
+  var h='<h3>Solde '+(real?"réel":"prévu")+' · '+MONTHS[m-1].toLowerCase()+'</h3>';
+  h+='<div class="sumline"><span class="muted">'+(real?"Ce qui est déjà passé":"Tout ce qui est prévu ce mois-ci")+'</span><span class="num big2'+amtCls(sol)+'">'+fmt(sol)+'</span></div>';
+  h+='<div class="sum4"><div>Revenus<span class="num t-rev">+'+fmt(tot.Revenu)+'</span></div><div>Dépenses<span class="num t-dep">−'+fmt(tot.Dépense)+'</span></div><div>Épargne<span class="num t-epa">−'+fmt(tot.Épargne)+'</span></div></div>';
+  [["Revenu","Revenus"],["Dépense","Dépenses"],["Épargne","Épargne"]].forEach(function(g){
+    var rs=rows.filter(function(r){return typeOf(r.cat)===g[0];});if(!rs.length)return;
+    h+='<h2 style="margin-top:18px">'+g[1]+' ('+rs.length+')</h2><div class="list">'+rs.map(function(t){return opRow(t);}).join("")+'</div>';
+  });
+  if(!rows.length)h+='<div class="list" style="margin-top:14px"><div class="empty">'+(real?"Rien de passé pour l'instant ce mois-ci.":"Rien de prévu ce mois-ci.")+'</div></div>';
+  h+='<div class="btns"><button class="btn ghost" data-act="close">Fermer</button></div>';
+  openSheet(h);
+}
 function openCat(cat){
   var m=S.m,p=planCat(m,cat),r=realCat(m,cat),rows=monthRows(m,cat,true),ty=typeOf(cat);
   var seen={};rows.forEach(function(x){seen[{edech:"ech",edline:"line",edtx:"tx"}[x.act]+":"+x.id]=1;});
@@ -970,6 +984,7 @@ document.addEventListener("click",function(ev){
    case "sharelink":shareLink();break;
    case "linkgo":importObj(PENDING);PENDING=null;break;
    case "skin":STORE.meta.theme=el.getAttribute("data-v");saveStore();applySkin();document.querySelectorAll("#skinseg button").forEach(function(b){b.setAttribute("aria-pressed",String(b.getAttribute("data-v")===STORE.meta.theme));});break;
+   case "solde":openSolde(el.getAttribute("data-v"));break;
    case "catdetail":openCat(el.getAttribute("data-c"));break;
    case "startempty":STORE.meta.welcomed=true;saveStore();render();break;
    case "export":doExport();break;
