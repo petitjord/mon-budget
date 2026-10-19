@@ -4,4 +4,4 @@ Application de suivi de budget personnel (PWA). Aucun serveur : les donnees rest
 
 ## Budget Patrick
 
-Deuxième version indépendante (onglets Soisy et Port Louis à la place de Clichy), dans le dossier `patrick/`. Données séparées de la première application.
+Deuxième version indépendante (onglet Gestion locative avec Soisy et Port Louis à la place de Clichy), dans le dossier `patrick/`. Données séparées de la première application.
